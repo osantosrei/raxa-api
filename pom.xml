@@ -8,11 +8,11 @@
 		<version>4.0.6</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>dev.osantosrei</groupId>
-	<artifactId>raxa</artifactId>
+	<groupId>com.raxa</groupId>
+	<artifactId>raxa-api</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
+	<name>raxa-api</name>
+	<description>Backend REST API for Raxa</description>
 	<url/>
 	<licenses>
 		<license/>
