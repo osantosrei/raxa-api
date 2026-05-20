@@ -126,6 +126,77 @@ class MatchServiceTest {
                 });
     }
 
+    @Test
+    void joinMatchWhenFullThrowsBusinessException() {
+        UUID matchId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Match match = buildMatch(matchId, buildUser(UUID.randomUUID()));
+        match.setStatus(MatchStatus.FULL);
+
+        when(matchRepository.findByIdForUpdate(matchId)).thenReturn(Optional.of(match));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(buildUser(userId)));
+        when(matchPlayerRepository.countByMatchIdForUpdate(matchId)).thenReturn(10);
+
+        assertThatThrownBy(() -> matchService.joinMatch(matchId, userId))
+                .isInstanceOfSatisfying(BusinessException.class, ex ->
+                        assertThat(ex.getMessage()).isEqualTo("Partida sem vagas disponíveis.")
+                );
+    }
+
+    @Test
+    void joinMatchWhenLastSlotSetsStatusToFull() {
+        UUID matchId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Match match = buildMatch(matchId, buildUser(UUID.randomUUID()));
+        match.setMaxPlayers(2);
+
+        when(matchRepository.findByIdForUpdate(matchId)).thenReturn(Optional.of(match));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(buildUser(userId)));
+        when(matchPlayerRepository.countByMatchIdForUpdate(matchId)).thenReturn(1);
+        when(matchPlayerRepository.existsByMatchIdAndUserId(matchId, userId)).thenReturn(false);
+        when(matchPlayerRepository.countByMatchId(matchId)).thenReturn(2);
+
+        var response = matchService.joinMatch(matchId, userId);
+
+        assertThat(match.getStatus()).isEqualTo(MatchStatus.FULL);
+        assertThat(response.status()).isEqualTo(MatchStatus.FULL);
+        assertThat(response.currentPlayers()).isEqualTo(2);
+        verify(matchPlayerRepository).save(any(MatchPlayer.class));
+        verify(matchRepository).save(match);
+    }
+
+    @Test
+    void leaveMatchWhenCreatorThrowsBusinessException() {
+        UUID creatorId = UUID.randomUUID();
+        UUID matchId = UUID.randomUUID();
+        Match match = buildMatch(matchId, buildUser(creatorId));
+
+        when(matchRepository.findByIdForUpdate(matchId)).thenReturn(Optional.of(match));
+
+        assertThatThrownBy(() -> matchService.leaveMatch(matchId, creatorId))
+                .isInstanceOfSatisfying(BusinessException.class, ex ->
+                        assertThat(ex.getMessage()).contains("criador")
+                );
+    }
+
+    @Test
+    void leaveMatchWhenFullSetsStatusToOpen() {
+        UUID creatorId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID matchId = UUID.randomUUID();
+        Match match = buildMatch(matchId, buildUser(creatorId));
+        match.setStatus(MatchStatus.FULL);
+
+        when(matchRepository.findByIdForUpdate(matchId)).thenReturn(Optional.of(match));
+        when(matchPlayerRepository.existsByMatchIdAndUserId(matchId, userId)).thenReturn(true);
+
+        matchService.leaveMatch(matchId, userId);
+
+        assertThat(match.getStatus()).isEqualTo(MatchStatus.OPEN);
+        verify(matchPlayerRepository).deleteByMatchIdAndUserId(matchId, userId);
+        verify(matchRepository).save(match);
+    }
+
     private Match buildMatch(UUID matchId, User creator) {
         Match match = new Match();
         match.setId(matchId);
