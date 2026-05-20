@@ -4,6 +4,7 @@ import static com.raxa.security.AuthUtils.currentUserId;
 
 import com.raxa.dto.request.CreateMatchRequest;
 import com.raxa.dto.response.MatchResponse;
+import com.raxa.dto.response.PlayerResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -59,5 +60,27 @@ public class MatchController {
             @PathVariable UUID id
     ) {
         matchService.cancelMatch(id, currentUserId(authentication));
+    }
+
+    @PostMapping("/{id}/join")
+    public MatchResponse join(
+            Authentication authentication,
+            @PathVariable UUID id
+    ) {
+        return matchService.joinMatch(id, currentUserId(authentication));
+    }
+
+    @DeleteMapping("/{id}/leave")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void leave(
+            Authentication authentication,
+            @PathVariable UUID id
+    ) {
+        matchService.leaveMatch(id, currentUserId(authentication));
+    }
+
+    @GetMapping("/{id}/players")
+    public List<PlayerResponse> players(@PathVariable UUID id) {
+        return matchService.listPlayers(id);
     }
 }

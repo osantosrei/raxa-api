@@ -9,6 +9,7 @@ import com.raxa.domain.user.User;
 import com.raxa.domain.user.UserRepository;
 import com.raxa.dto.request.CreateMatchRequest;
 import com.raxa.dto.response.MatchResponse;
+import com.raxa.dto.response.PlayerResponse;
 import com.raxa.dto.response.UserResponse;
 import com.raxa.exception.BusinessException;
 import java.time.LocalDateTime;
@@ -93,8 +94,70 @@ public class MatchService {
         matchRepository.save(match);
     }
 
+    public MatchResponse joinMatch(UUID matchId, UUID userId) {
+        Match match = findForUpdateOrThrow(matchId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("Usuário não encontrado", HttpStatus.NOT_FOUND));
+        int currentPlayers = matchPlayerRepository.countByMatchIdForUpdate(matchId);
+
+        validateJoin(match, userId, currentPlayers);
+
+        matchPlayerRepository.save(new MatchPlayer(match, user));
+
+        if (currentPlayers + 1 >= match.getMaxPlayers()) {
+            match.setStatus(MatchStatus.FULL);
+            matchRepository.save(match);
+        }
+
+        return toResponse(match, inviteCodeForCreator(match, userId));
+    }
+
+    public MatchResponse leaveMatch(UUID matchId, UUID userId) {
+        Match match = findForUpdateOrThrow(matchId);
+
+        if (match.getCreator().getId().equals(userId)) {
+            throw new BusinessException("O criador não pode sair da partida. Cancele-a em vez disso.");
+        }
+
+        if (!matchPlayerRepository.existsByMatchIdAndUserId(matchId, userId)) {
+            throw new BusinessException("Você não está nessa partida.", HttpStatus.NOT_FOUND);
+        }
+
+        if (match.getScheduledAt().isBefore(LocalDateTime.now())) {
+            throw new BusinessException("Não é possível sair de uma partida já realizada.");
+        }
+
+        matchPlayerRepository.deleteByMatchIdAndUserId(matchId, userId);
+
+        if (match.getStatus() == MatchStatus.FULL) {
+            match.setStatus(MatchStatus.OPEN);
+            matchRepository.save(match);
+        }
+
+        return toResponse(match, inviteCodeForCreator(match, userId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PlayerResponse> listPlayers(UUID matchId) {
+        findOrThrow(matchId);
+
+        return matchPlayerRepository.findByMatchIdOrderByJoinedAtAsc(matchId)
+                .stream()
+                .map(player -> new PlayerResponse(
+                        player.getUser().getId(),
+                        player.getUser().getName(),
+                        player.getJoinedAt()
+                ))
+                .toList();
+    }
+
     public Match findOrThrow(UUID matchId) {
         return matchRepository.findById(matchId)
+                .orElseThrow(() -> new BusinessException("Partida não encontrada", HttpStatus.NOT_FOUND));
+    }
+
+    private Match findForUpdateOrThrow(UUID matchId) {
+        return matchRepository.findByIdForUpdate(matchId)
                 .orElseThrow(() -> new BusinessException("Partida não encontrada", HttpStatus.NOT_FOUND));
     }
 
@@ -136,6 +199,28 @@ public class MatchService {
     private void validateScheduledAt(LocalDateTime scheduledAt) {
         if (scheduledAt.isBefore(LocalDateTime.now().plusHours(1))) {
             throw new BusinessException("A partida deve ser agendada com pelo menos 1 hora de antecedência");
+        }
+    }
+
+    private void validateJoin(Match match, UUID userId, int currentPlayers) {
+        if (match.getStatus() == MatchStatus.CANCELLED) {
+            throw new BusinessException("Partida cancelada.");
+        }
+
+        if (match.getStatus() == MatchStatus.FULL) {
+            throw new BusinessException("Partida sem vagas disponíveis.");
+        }
+
+        if (match.getScheduledAt().isBefore(LocalDateTime.now())) {
+            throw new BusinessException("Não é possível entrar em uma partida que já ocorreu.");
+        }
+
+        if (matchPlayerRepository.existsByMatchIdAndUserId(match.getId(), userId)) {
+            throw new BusinessException("Você já está confirmado nessa partida.");
+        }
+
+        if (currentPlayers >= match.getMaxPlayers()) {
+            throw new BusinessException("Partida sem vagas disponíveis.");
         }
     }
 }
