@@ -4,6 +4,8 @@ import static com.raxa.security.AuthUtils.currentUserId;
 
 import com.raxa.dto.response.InvitePreviewResponse;
 import com.raxa.dto.response.MatchResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,11 +25,14 @@ public class InviteController {
         this.inviteService = inviteService;
     }
 
+    @Operation(summary = "Resolver convite", description = "Retorna o preview publico da partida pelo codigo do convite.")
     @GetMapping("/{code}/resolve")
     public InvitePreviewResponse resolve(@PathVariable String code) {
         return inviteService.resolveInvite(code);
     }
 
+    @Operation(summary = "Entrar via convite", description = "Confirma presenca na partida usando um codigo de convite.")
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/{code}/join")
     public MatchResponse join(
             Authentication authentication,
