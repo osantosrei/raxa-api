@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: "jdbc:h2:mem:raxa;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=CREATE TYPE IF NOT EXISTS match_status AS ENUM ('OPEN','FULL','CANCELLED','FINISHED')"
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+  flyway:
+    enabled: false
+
+jwt:
+  secret: test-secret-key-with-enough-length-for-hmac-signing
+  expiration-ms: 86400000
