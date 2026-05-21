@@ -61,4 +61,8 @@ public class Invite {
     public boolean isActive() {
         return active;
     }
+
+    public void deactivate() {
+        this.active = false;
+    }
 }
