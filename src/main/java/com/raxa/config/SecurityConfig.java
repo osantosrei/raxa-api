@@ -84,9 +84,15 @@ public class SecurityConfig {
     }
 
     private List<String> parseAllowedOrigins() {
-        return Arrays.stream(allowedOrigins.split(","))
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(origin -> !origin.isBlank())
                 .toList();
+
+        if (origins.isEmpty()) {
+            throw new IllegalStateException("FRONTEND_ORIGINS must not be blank");
+        }
+
+        return origins;
     }
 }

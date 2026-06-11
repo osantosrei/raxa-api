@@ -17,7 +17,8 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    init-sql: CREATE EXTENSION IF NOT EXISTS pgcrypto
+    init-sqls:
+      - CREATE EXTENSION IF NOT EXISTS pgcrypto
 
 server:
   port: ${PORT:8080}
