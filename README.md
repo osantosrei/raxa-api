@@ -84,7 +84,7 @@ Deploy recomendado para produção do MVP:
 - Runtime: Docker
 - Banco: Supabase PostgreSQL via Connection Pooler em Session mode
 - Health check path: `/actuator/health`
-- Frontend liberado no CORS: `https://raxa-web.vercel.app,https://*.vercel.app`
+- Frontend liberado no CORS: `https://raxa-*.vercel.app`
 
 ### Variáveis no Render
 
@@ -96,7 +96,7 @@ Deploy recomendado para produção do MVP:
 | `DB_PASSWORD` | senha do banco Supabase |
 | `JWT_SECRET` | chave longa e aleatória |
 | `JWT_EXPIRATION_MS` | `86400000` |
-| `FRONTEND_ORIGINS` | `https://raxa-web.vercel.app,https://*.vercel.app` |
+| `FRONTEND_ORIGINS` | `https://raxa-*.vercel.app` |
 
 Use a string do Supabase em **Connection Pooler -> Session mode**. Evite Transaction mode para esta API, porque JPA/Flyway trabalham melhor com conexões persistentes durante startup e transações.
 
@@ -116,7 +116,7 @@ Depois do deploy, valide:
 | `JWT_SECRET` | `mudar-em-producao-...` | Chave de assinatura dos tokens |
 | `JWT_EXPIRATION_MS` | `86400000` | Expiração do token (24h em ms) |
 | `PORT` | `8080` | Porta HTTP da aplicação |
-| `FRONTEND_ORIGINS` | `http://localhost:3000,http://localhost:5173,https://raxa-web.vercel.app,https://*.vercel.app` | Origens liberadas no CORS |
+| `FRONTEND_ORIGINS` | `http://localhost:3000,http://localhost:5173,https://raxa-*.vercel.app` | Origens liberadas no CORS |
 
 > Em produção, substitua `JWT_SECRET` por uma chave longa e gerada aleatoriamente.
 
