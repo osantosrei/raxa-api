@@ -61,7 +61,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(parseAllowedOrigins());
+        configuration.setAllowedOriginPatterns(parseAllowedOriginPatterns());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setMaxAge(3600L);
@@ -83,16 +83,16 @@ public class SecurityConfig {
         };
     }
 
-    private List<String> parseAllowedOrigins() {
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+    private List<String> parseAllowedOriginPatterns() {
+        List<String> originPatterns = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(origin -> !origin.isBlank())
                 .toList();
 
-        if (origins.isEmpty()) {
+        if (originPatterns.isEmpty()) {
             throw new IllegalStateException("FRONTEND_ORIGINS must not be blank");
         }
 
-        return origins;
+        return originPatterns;
     }
 }
