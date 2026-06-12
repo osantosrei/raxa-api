@@ -29,7 +29,7 @@ jwt:
 
 app:
   cors:
-    allowed-origins: ${FRONTEND_ORIGINS:http://localhost:3000,http://localhost:5173,https://raxa-web.vercel.app}
+    allowed-origins: ${FRONTEND_ORIGINS:http://localhost:3000,http://localhost:5173,https://raxa-web.vercel.app,https://*.vercel.app}
 
 springdoc:
   swagger-ui:
