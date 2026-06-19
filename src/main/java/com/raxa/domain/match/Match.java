@@ -110,6 +110,18 @@ public class Match {
         return status;
     }
 
+    public MatchStatus getEffectiveStatus() {
+        if (status == MatchStatus.CANCELLED) {
+            return MatchStatus.CANCELLED;
+        }
+
+        if (scheduledAt != null && scheduledAt.isBefore(LocalDateTime.now())) {
+            return MatchStatus.FINISHED;
+        }
+
+        return status;
+    }
+
     public void setStatus(MatchStatus status) {
         this.status = status;
     }
