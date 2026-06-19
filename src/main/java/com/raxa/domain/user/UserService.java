@@ -43,7 +43,6 @@ public class UserService {
         user.setName(request.name().trim());
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
-        user.setPhone(normalizeOptional(request.phone()));
 
         User savedUser = userRepository.save(user);
         String token = jwtService.generateToken(savedUser.getId(), savedUser.getEmail());
@@ -76,10 +75,6 @@ public class UserService {
             user.setName(request.name().trim());
         }
 
-        if (request.phone() != null) {
-            user.setPhone(normalizeOptional(request.phone()));
-        }
-
         return toResponse(userRepository.save(user));
     }
 
@@ -101,8 +96,7 @@ public class UserService {
         return new UserResponse(
                 user.getId(),
                 user.getName(),
-                user.getEmail(),
-                user.getPhone()
+                user.getEmail()
         );
     }
 
@@ -114,11 +108,4 @@ public class UserService {
         return email.trim().toLowerCase(Locale.ROOT);
     }
 
-    private String normalizeOptional(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-
-        return value.trim();
-    }
 }

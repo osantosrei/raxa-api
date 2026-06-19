@@ -33,7 +33,7 @@ public class UserController {
         return userService.getProfile(currentUserId(authentication));
     }
 
-    @Operation(summary = "Atualizar perfil", description = "Atualiza nome e telefone do usuario autenticado.")
+    @Operation(summary = "Atualizar perfil", description = "Atualiza nome do usuario autenticado.")
     @PutMapping("/me")
     public UserResponse update(
             Authentication authentication,

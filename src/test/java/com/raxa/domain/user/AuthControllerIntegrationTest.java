@@ -37,8 +37,7 @@ class AuthControllerIntegrationTest {
         RegisterRequest registerRequest = new RegisterRequest(
                 "Usuario Integracao",
                 email,
-                "Password123!",
-                "11999999999"
+                "Password123!"
         );
 
         String registerJson = mockMvc.perform(post("/api/v1/auth/register")

@@ -151,7 +151,7 @@ A documentação interativa completa está no **[Swagger UI](http://localhost:80
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
 | `GET` | `/api/v1/users/me` | ✓ | Perfil do usuário autenticado |
-| `PUT` | `/api/v1/users/me` | ✓ | Atualizar nome e telefone |
+| `PUT` | `/api/v1/users/me` | ✓ | Atualizar nome |
 
 ### Partidas
 

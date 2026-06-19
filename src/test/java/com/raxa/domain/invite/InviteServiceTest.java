@@ -93,7 +93,7 @@ class InviteServiceTest {
                 match.getMaxPlayers(),
                 4,
                 MatchStatus.OPEN,
-                new UserResponse(match.getCreator().getId(), "Criador", "criador@test.com", null),
+                new UserResponse(match.getCreator().getId(), "Criador", "criador@test.com"),
                 null,
                 Instant.now()
         );

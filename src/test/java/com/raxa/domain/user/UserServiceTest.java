@@ -43,7 +43,7 @@ class UserServiceTest {
     @Test
     void registerCreatesUserWithNormalizedEmailAndReturnsToken() {
         UUID userId = UUID.randomUUID();
-        RegisterRequest request = new RegisterRequest("João Silva", "JOAO@TEST.COM", "senha123", " 11999999999 ");
+        RegisterRequest request = new RegisterRequest("João Silva", "JOAO@TEST.COM", "senha123");
 
         when(userRepository.existsByEmail("joao@test.com")).thenReturn(false);
         when(passwordEncoder.encode("senha123")).thenReturn("hashed-password");
@@ -61,7 +61,6 @@ class UserServiceTest {
         assertThat(response.tokenType()).isEqualTo("Bearer");
         assertThat(response.expiresIn()).isEqualTo(86400L);
         assertThat(response.user().email()).isEqualTo("joao@test.com");
-        assertThat(response.user().phone()).isEqualTo("11999999999");
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
@@ -70,7 +69,7 @@ class UserServiceTest {
 
     @Test
     void registerWithDuplicateEmailThrowsConflict() {
-        RegisterRequest request = new RegisterRequest("João Silva", "joao@test.com", "senha123", null);
+        RegisterRequest request = new RegisterRequest("João Silva", "joao@test.com", "senha123");
         when(userRepository.existsByEmail("joao@test.com")).thenReturn(true);
 
         assertThatThrownBy(() -> userService.register(request))
