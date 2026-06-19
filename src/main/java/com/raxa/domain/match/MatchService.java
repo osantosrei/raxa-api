@@ -86,6 +86,10 @@ public class MatchService {
             throw new BusinessException("Somente o criador pode cancelar a partida", HttpStatus.FORBIDDEN);
         }
 
+        if (match.getEffectiveStatus() == MatchStatus.FINISHED) {
+            throw new BusinessException("Não é possível cancelar uma partida já realizada.");
+        }
+
         if (match.getStatus() == MatchStatus.CANCELLED) {
             throw new BusinessException("Partida já cancelada");
         }

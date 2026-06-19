@@ -128,6 +128,21 @@ class MatchServiceTest {
     }
 
     @Test
+    void cancelMatchWhenScheduledAtIsPastThrowsBusinessException() {
+        UUID creatorId = UUID.randomUUID();
+        UUID matchId = UUID.randomUUID();
+        Match match = buildMatch(matchId, buildUser(creatorId));
+        match.setScheduledAt(LocalDateTime.now().minusMinutes(1));
+
+        when(matchRepository.findById(matchId)).thenReturn(Optional.of(match));
+
+        assertThatThrownBy(() -> matchService.cancelMatch(matchId, creatorId))
+                .isInstanceOfSatisfying(BusinessException.class, ex ->
+                        assertThat(ex.getMessage()).contains("já realizada")
+                );
+    }
+
+    @Test
     void joinMatchWhenFullThrowsBusinessException() {
         UUID matchId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
@@ -244,6 +259,23 @@ class MatchServiceTest {
         assertThatThrownBy(() -> matchService.leaveMatch(matchId, creatorId))
                 .isInstanceOfSatisfying(BusinessException.class, ex ->
                         assertThat(ex.getMessage()).contains("criador")
+                );
+    }
+
+    @Test
+    void leaveMatchWhenScheduledAtIsPastThrowsBusinessException() {
+        UUID creatorId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID matchId = UUID.randomUUID();
+        Match match = buildMatch(matchId, buildUser(creatorId));
+        match.setScheduledAt(LocalDateTime.now().minusMinutes(1));
+
+        when(matchRepository.findByIdForUpdate(matchId)).thenReturn(Optional.of(match));
+        when(matchPlayerRepository.existsByMatchIdAndUserId(matchId, userId)).thenReturn(true);
+
+        assertThatThrownBy(() -> matchService.leaveMatch(matchId, userId))
+                .isInstanceOfSatisfying(BusinessException.class, ex ->
+                        assertThat(ex.getMessage()).contains("já realizada")
                 );
     }
 
