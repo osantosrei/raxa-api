@@ -42,7 +42,7 @@ public class InviteService {
                 match.getScheduledAt(),
                 match.getMaxPlayers(),
                 matchPlayerRepository.countByMatchId(match.getId()),
-                match.getStatus(),
+                match.getEffectiveStatus(),
                 invite.getCode()
         );
     }

@@ -16,6 +16,7 @@ import com.raxa.domain.user.UserRepository;
 import com.raxa.dto.request.CreateMatchRequest;
 import com.raxa.exception.BusinessException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -127,6 +128,21 @@ class MatchServiceTest {
     }
 
     @Test
+    void cancelMatchWhenScheduledAtIsPastThrowsBusinessException() {
+        UUID creatorId = UUID.randomUUID();
+        UUID matchId = UUID.randomUUID();
+        Match match = buildMatch(matchId, buildUser(creatorId));
+        match.setScheduledAt(LocalDateTime.now().minusMinutes(1));
+
+        when(matchRepository.findById(matchId)).thenReturn(Optional.of(match));
+
+        assertThatThrownBy(() -> matchService.cancelMatch(matchId, creatorId))
+                .isInstanceOfSatisfying(BusinessException.class, ex ->
+                        assertThat(ex.getMessage()).contains("já realizada")
+                );
+    }
+
+    @Test
     void joinMatchWhenFullThrowsBusinessException() {
         UUID matchId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
@@ -140,6 +156,23 @@ class MatchServiceTest {
         assertThatThrownBy(() -> matchService.joinMatch(matchId, userId))
                 .isInstanceOfSatisfying(BusinessException.class, ex ->
                         assertThat(ex.getMessage()).isEqualTo("Partida sem vagas disponíveis.")
+                );
+    }
+
+    @Test
+    void joinMatchWhenScheduledAtIsPastThrowsBusinessException() {
+        UUID matchId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Match match = buildMatch(matchId, buildUser(UUID.randomUUID()));
+        match.setScheduledAt(LocalDateTime.now().minusMinutes(1));
+
+        when(matchRepository.findByIdForUpdate(matchId)).thenReturn(Optional.of(match));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(buildUser(userId)));
+        when(matchPlayerRepository.countByMatchIdForUpdate(matchId)).thenReturn(1);
+
+        assertThatThrownBy(() -> matchService.joinMatch(matchId, userId))
+                .isInstanceOfSatisfying(BusinessException.class, ex ->
+                        assertThat(ex.getMessage()).contains("já ocorreu")
                 );
     }
 
@@ -166,6 +199,56 @@ class MatchServiceTest {
     }
 
     @Test
+    void getMatchWhenScheduledAtIsPastReturnsFinishedWithoutInviteCode() {
+        UUID creatorId = UUID.randomUUID();
+        UUID matchId = UUID.randomUUID();
+        Match match = buildMatch(matchId, buildUser(creatorId));
+        match.setScheduledAt(LocalDateTime.now().minusMinutes(1));
+
+        when(matchRepository.findById(matchId)).thenReturn(Optional.of(match));
+        when(matchPlayerRepository.countByMatchId(matchId)).thenReturn(4);
+
+        var response = matchService.getMatch(matchId, creatorId);
+
+        assertThat(response.status()).isEqualTo(MatchStatus.FINISHED);
+        assertThat(response.inviteCode()).isNull();
+        assertThat(response.currentPlayers()).isEqualTo(4);
+    }
+
+    @Test
+    void listByUserKeepsFinishedMatchesVisible() {
+        UUID creatorId = UUID.randomUUID();
+        UUID matchId = UUID.randomUUID();
+        Match match = buildMatch(matchId, buildUser(creatorId));
+        match.setScheduledAt(LocalDateTime.now().minusMinutes(1));
+
+        when(matchRepository.findAllByUserId(creatorId)).thenReturn(List.of(match));
+        when(matchPlayerRepository.countByMatchId(matchId)).thenReturn(4);
+
+        var response = matchService.listByUser(creatorId);
+
+        assertThat(response).hasSize(1);
+        assertThat(response.getFirst().status()).isEqualTo(MatchStatus.FINISHED);
+        assertThat(response.getFirst().inviteCode()).isNull();
+    }
+
+    @Test
+    void cancelledMatchKeepsCancelledStatusEvenWhenScheduledAtIsPast() {
+        UUID creatorId = UUID.randomUUID();
+        UUID matchId = UUID.randomUUID();
+        Match match = buildMatch(matchId, buildUser(creatorId));
+        match.setScheduledAt(LocalDateTime.now().minusMinutes(1));
+        match.setStatus(MatchStatus.CANCELLED);
+
+        when(matchRepository.findById(matchId)).thenReturn(Optional.of(match));
+        when(matchPlayerRepository.countByMatchId(matchId)).thenReturn(4);
+
+        var response = matchService.getMatch(matchId, creatorId);
+
+        assertThat(response.status()).isEqualTo(MatchStatus.CANCELLED);
+    }
+
+    @Test
     void leaveMatchWhenCreatorThrowsBusinessException() {
         UUID creatorId = UUID.randomUUID();
         UUID matchId = UUID.randomUUID();
@@ -176,6 +259,23 @@ class MatchServiceTest {
         assertThatThrownBy(() -> matchService.leaveMatch(matchId, creatorId))
                 .isInstanceOfSatisfying(BusinessException.class, ex ->
                         assertThat(ex.getMessage()).contains("criador")
+                );
+    }
+
+    @Test
+    void leaveMatchWhenScheduledAtIsPastThrowsBusinessException() {
+        UUID creatorId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID matchId = UUID.randomUUID();
+        Match match = buildMatch(matchId, buildUser(creatorId));
+        match.setScheduledAt(LocalDateTime.now().minusMinutes(1));
+
+        when(matchRepository.findByIdForUpdate(matchId)).thenReturn(Optional.of(match));
+        when(matchPlayerRepository.existsByMatchIdAndUserId(matchId, userId)).thenReturn(true);
+
+        assertThatThrownBy(() -> matchService.leaveMatch(matchId, userId))
+                .isInstanceOfSatisfying(BusinessException.class, ex ->
+                        assertThat(ex.getMessage()).contains("já realizada")
                 );
     }
 

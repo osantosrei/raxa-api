@@ -63,6 +63,23 @@ class InviteServiceTest {
     }
 
     @Test
+    void resolveInviteForFinishedMatchReturnsFinishedPreview() {
+        UUID matchId = UUID.randomUUID();
+        Match match = buildMatch(matchId);
+        match.setScheduledAt(LocalDateTime.now().minusMinutes(1));
+        Invite invite = new Invite(match, "abc12345");
+
+        when(inviteRepository.findByCodeAndActiveTrue("abc12345")).thenReturn(Optional.of(invite));
+        when(matchPlayerRepository.countByMatchId(matchId)).thenReturn(3);
+
+        var response = inviteService.resolveInvite("abc12345");
+
+        assertThat(response.matchId()).isEqualTo(matchId);
+        assertThat(response.status()).isEqualTo(MatchStatus.FINISHED);
+        assertThat(response.inviteCode()).isEqualTo("abc12345");
+    }
+
+    @Test
     void joinViaInviteDelegatesToMatchJoinRules() {
         UUID userId = UUID.randomUUID();
         UUID matchId = UUID.randomUUID();
@@ -87,6 +104,24 @@ class InviteServiceTest {
         var response = inviteService.joinViaInvite("abc12345", userId);
 
         assertThat(response).isEqualTo(expected);
+    }
+
+    @Test
+    void joinViaInvitePropagatesFinishedMatchJoinBlock() {
+        UUID userId = UUID.randomUUID();
+        UUID matchId = UUID.randomUUID();
+        Match match = buildMatch(matchId);
+        match.setScheduledAt(LocalDateTime.now().minusMinutes(1));
+        Invite invite = new Invite(match, "abc12345");
+
+        when(inviteRepository.findByCodeAndActiveTrue("abc12345")).thenReturn(Optional.of(invite));
+        when(matchService.joinMatch(matchId, userId))
+                .thenThrow(new BusinessException("Não é possível entrar em uma partida que já ocorreu."));
+
+        assertThatThrownBy(() -> inviteService.joinViaInvite("abc12345", userId))
+                .isInstanceOfSatisfying(BusinessException.class, ex ->
+                        assertThat(ex.getMessage()).contains("já ocorreu")
+                );
     }
 
     @Test

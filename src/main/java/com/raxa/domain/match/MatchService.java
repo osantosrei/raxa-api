@@ -86,6 +86,10 @@ public class MatchService {
             throw new BusinessException("Somente o criador pode cancelar a partida", HttpStatus.FORBIDDEN);
         }
 
+        if (match.getEffectiveStatus() == MatchStatus.FINISHED) {
+            throw new BusinessException("Não é possível cancelar uma partida já realizada.");
+        }
+
         if (match.getStatus() == MatchStatus.CANCELLED) {
             throw new BusinessException("Partida já cancelada");
         }
@@ -114,6 +118,8 @@ public class MatchService {
 
     public MatchResponse leaveMatch(UUID matchId, UUID userId) {
         Match match = findForUpdateOrThrow(matchId);
+        MatchStatus effectiveStatus = match.getEffectiveStatus();
+        boolean wasFull = match.getStatus() == MatchStatus.FULL;
 
         if (match.getCreator().getId().equals(userId)) {
             throw new BusinessException("O criador não pode sair da partida. Cancele-a em vez disso.");
@@ -123,13 +129,13 @@ public class MatchService {
             throw new BusinessException("Você não está nessa partida.", HttpStatus.NOT_FOUND);
         }
 
-        if (match.getScheduledAt().isBefore(LocalDateTime.now())) {
+        if (effectiveStatus == MatchStatus.FINISHED) {
             throw new BusinessException("Não é possível sair de uma partida já realizada.");
         }
 
         matchPlayerRepository.deleteByMatchIdAndUserId(matchId, userId);
 
-        if (match.getStatus() == MatchStatus.FULL) {
+        if (wasFull) {
             match.setStatus(MatchStatus.OPEN);
             matchRepository.save(match);
         }
@@ -172,6 +178,10 @@ public class MatchService {
             return null;
         }
 
+        if (match.getEffectiveStatus() == MatchStatus.FINISHED) {
+            return null;
+        }
+
         return inviteRepository.findByMatchId(match.getId())
                 .map(Invite::getCode)
                 .orElse(null);
@@ -185,7 +195,7 @@ public class MatchService {
                 match.getScheduledAt(),
                 match.getMaxPlayers(),
                 matchPlayerRepository.countByMatchId(match.getId()),
-                match.getStatus(),
+                match.getEffectiveStatus(),
                 toUserResponse(match.getCreator()),
                 inviteCode,
                 match.getCreatedAt()
@@ -203,16 +213,18 @@ public class MatchService {
     }
 
     private void validateJoin(Match match, UUID userId, int currentPlayers) {
-        if (match.getStatus() == MatchStatus.CANCELLED) {
+        MatchStatus effectiveStatus = match.getEffectiveStatus();
+
+        if (effectiveStatus == MatchStatus.CANCELLED) {
             throw new BusinessException("Partida cancelada.");
         }
 
-        if (match.getStatus() == MatchStatus.FULL) {
-            throw new BusinessException("Partida sem vagas disponíveis.");
+        if (effectiveStatus == MatchStatus.FINISHED) {
+            throw new BusinessException("Não é possível entrar em uma partida que já ocorreu.");
         }
 
-        if (match.getScheduledAt().isBefore(LocalDateTime.now())) {
-            throw new BusinessException("Não é possível entrar em uma partida que já ocorreu.");
+        if (effectiveStatus == MatchStatus.FULL) {
+            throw new BusinessException("Partida sem vagas disponíveis.");
         }
 
         if (matchPlayerRepository.existsByMatchIdAndUserId(match.getId(), userId)) {
